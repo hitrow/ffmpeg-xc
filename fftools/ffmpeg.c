@@ -760,7 +760,7 @@ static void write_packet(OutputFile *of, AVPacket *pkt, OutputStream *ost, int u
 
     av_packet_rescale_ts(pkt, ost->mux_timebase, ost->st->time_base);
 
-    if (!(s->oformat->flags & AVFMT_NOTIMESTAMPS)) {
+    if (fix_dts && !(s->oformat->flags & AVFMT_NOTIMESTAMPS))  {
         if (pkt->dts != AV_NOPTS_VALUE &&
             pkt->pts != AV_NOPTS_VALUE &&
             pkt->dts > pkt->pts) {
@@ -1640,6 +1640,7 @@ static void print_final_stats(int64_t total_size)
     }
 }
 
+int should_print = 0;
 static void print_report(int is_last_report, int64_t timer_start, int64_t cur_time)
 {
     AVBPrint buf, buf_script;
@@ -1821,19 +1822,25 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
     }
     av_bprint_finalize(&buf, NULL);
 
-    if (progress_avio) {
-        av_bprintf(&buf_script, "progress=%s\n",
-                   is_last_report ? "end" : "continue");
-        avio_write(progress_avio, buf_script.str,
-                   FFMIN(buf_script.len, buf_script.size - 1));
-        avio_flush(progress_avio);
-        av_bprint_finalize(&buf_script, NULL);
-        if (is_last_report) {
-            if ((ret = avio_closep(&progress_avio)) < 0)
-                av_log(NULL, AV_LOG_ERROR,
-                       "Error closing progress log, loss of information possible: %s\n", av_err2str(ret));
-        }
-    }
+    if (progress_filename && should_print && ((cur_time - timer_start) / 1000000) % 30 == 0) {
+        AVIOContext *avio = NULL;
+        ret = avio_open2(&avio, progress_filename, AVIO_FLAG_WRITE, &int_cb, NULL);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Failed to open progress URL \"%s\": %s\n",
+                   progress_filename, av_err2str(ret));
+            return;
+         }
+         av_bprintf(&buf_script, "progress=%s\n",
+                    is_last_report ? "end" : "continue");
+        avio_write(avio, buf_script.str,
+                    FFMIN(buf_script.len, buf_script.size - 1));
+        avio_flush(avio);
+         av_bprint_finalize(&buf_script, NULL);
+
+        if ((ret = avio_closep(&avio)) < 0)
+            av_log(NULL, AV_LOG_ERROR,
+                   "Error closing progress log, loss of information possible: %s\n", av_err2str(ret));
+     }
 
     if (is_last_report)
         print_final_stats(total_size);
