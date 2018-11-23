@@ -584,6 +584,8 @@ extern float audio_drift_threshold;
 extern float dts_delta_threshold;
 extern float dts_error_threshold;
 
+extern char *progress_filename;
+extern int fix_dts;
 extern int audio_volume;
 extern int audio_sync_method;
 extern int video_sync_method;
@@ -603,7 +605,7 @@ extern int print_stats;
 extern int qp_hist;
 extern int stdin_interaction;
 extern int frame_bits_per_raw_sample;
-extern AVIOContext *progress_avio;
+
 extern float max_error_rate;
 extern char *videotoolbox_pixfmt;
 
