@@ -1821,7 +1821,8 @@ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_ti
         fflush(stderr);
     }
     av_bprint_finalize(&buf, NULL);
-
+    
+    should_print = should_print ? 0 : 1;
     if (progress_filename && should_print && ((cur_time - timer_start) / 1000000) % 30 == 0) {
         AVIOContext *avio = NULL;
         ret = avio_open2(&avio, progress_filename, AVIO_FLAG_WRITE, &int_cb, NULL);
