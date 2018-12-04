@@ -1578,7 +1578,10 @@ static int mpegts_write_packet_internal(AVFormatContext *s, AVPacket *pkt)
             int ret;
             AVPacket pkt2;
 
-            
+            if (!ts_st->amux) {
+                av_log(s, AV_LOG_ERROR, "AAC bitstream not in ADTS format "
+                                        "and extradata missing\n");
+            } else {
             av_init_packet(&pkt2);
             pkt2.data = pkt->data;
             pkt2.size = pkt->size;
@@ -1597,9 +1600,9 @@ static int mpegts_write_packet_internal(AVFormatContext *s, AVPacket *pkt)
             size            = avio_close_dyn_buf(ts_st->amux->pb, &data);
             ts_st->amux->pb = NULL;
             buf             = data;
-            
+            }
         }
-    } else if (st->codecpar->codec_id == AV_CODEC_ID_HEVC) {
+    }  else if (st->codecpar->codec_id == AV_CODEC_ID_HEVC) {
         const uint8_t *p = buf, *buf_end = p + size;
         uint32_t state = -1;
         int extradd = (pkt->flags & AV_PKT_FLAG_KEY) ? st->codecpar->extradata_size : 0;
